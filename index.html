@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Astronic Defense — AI Forensic Lab</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet">
+        <script
+            src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+        <style>
+:root {
+  --bg-core: #0b1220;
+  --bg-panel: #111827;
+  --bg-surface: #1c2333;
+  --border-edge: #2a3447;
+  --cyan-glow: #00d4ff;
+  --cyan-dim: #008bb3;
+  --ink-primary: #e8ecf1;
+  --ink-secondary: #8fa3bc;
+  --ink-dark: #4b5563;
+  --alert-red: #e2607a;
+  --alert-green: #5ad9a0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+body, html { background-color: var(--bg-core); color: var(--ink-primary); min-height: 100vh; overflow-x: hidden; }
+.mono { font-family: 'IBM Plex Mono', monospace; }
+
+/* --- LOGIN MODULE SYSTEM GATE --- */
+#loginScreen {
+  position: fixed; inset: 0; background: var(--bg-core); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  background: var(--bg-panel); border: 1px solid var(--border-edge);
+  border-radius: 16px; padding: 40px; width: 100%; max-width: 420px;
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.05);
+}
+.login-header { text-align: center; margin-bottom: 30px; }
+.login-header h1 { font-size: 24px; color: var(--cyan-glow); letter-spacing: -0.5px; }
+.login-header p { font-size: 12px; color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; margin-top: 5px; }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--ink-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.form-group input {
+  height: 46px; background: var(--bg-surface); border: 1px solid var(--border-edge);
+  border-radius: 8px; color: white; padding: 0 14px; outline: none; transition: 0.25s;
+}
+.form-group input:focus { border-color: var(--cyan-glow); box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+
+.auth-btn-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.btn-primary, .btn-secondary {
+  height: 46px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.25s; text-transform: uppercase; font-size: 13px;
+}
+.btn-primary { background: var(--cyan-glow); color: #000; }
+.btn-primary:hover { background: white; box-shadow: 0 0 20px rgba(0, 212, 255, 0.4); }
+.btn-secondary { background: transparent; border: 1px solid var(--border-edge); color: var(--ink-primary); }
+.btn-secondary:hover { border-color: var(--ink-secondary); }
+
+.error-message {
+  color: var(--alert-red); background: rgba(226, 96, 122, 0.1); border: 1px solid rgba(226, 96, 122, 0.2);
+  padding: 12px; border-radius: 6px; font-size: 12px; margin-top: 15px; display: none; font-family: 'IBM Plex Mono', monospace;
+}
+
+/* --- MAIN COMPUTATIONAL FRAMEWORK INTERFACE --- */
+#appWrapper { display: none; min-height: 100vh; grid-template-columns: 280px 1fr; }
+#appWrapper.authenticated { display: grid; }
+
+/* Sidebar Nav Blueprint */
+sidebar {
+  background: var(--bg-panel); border-right: 1px solid var(--border-edge);
+  padding: 30px 20px; display: flex; flex-direction: column; justify-content: space-between;
+}
+.sys-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+.sys-logo {
+  width: 36px; height: 36px; background: var(--cyan-glow); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; font-weight: 900; color: black;
+}
+.sys-title h2 { font-size: 15px; color: white; }
+.sys-title span { font-size: 10px; color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; }
+
+.nav-links { display: flex; flex-direction: column; gap: 8px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 8px;
+  color: var(--ink-secondary); text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s;
+}
+.nav-item:hover, .nav-item.active { background: var(--bg-surface); color: var(--cyan-glow); }
+
+.sys-logout-container { border-top: 1px solid var(--border-edge); padding-top: 20px; }
+
+/* Main Working Canvas Panel */
+main { padding: 40px; overflow-y: auto; }
+.page-container { display: none; }
+.page-container.active { display: block; }
+
+.header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border-edge); padding-bottom: 20px; }
+.header-panel h2 { font-size: 24px; color: white; letter-spacing: -0.5px; }
+
+/* Grid Cards Ecosystem */
+.metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+.metric-card {
+  background: var(--bg-panel); border: 1px solid var(--border-edge); border-radius: 12px; padding: 24px;
+  position: relative; overflow: hidden;
+}
+.metric-card .label { font-size: 11px; text-transform: uppercase; color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; }
+.metric-card .value { font-size: 32px; font-weight: 700; color: var(--cyan-glow); margin-top: 10px; font-family: 'IBM Plex Mono', monospace; }
+
+.panel-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; margin-bottom: 30px; }
+.content-card { background: var(--bg-panel); border: 1px solid var(--border-edge); border-radius: 12px; padding: 24px; }
+.card-label { font-size: 12px; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; color: var(--ink-secondary); margin-bottom: 20px; display: block; }
+
+.chart-box { height: 260px; position: relative; }
+
+/* Registry & Inputs Forms Configurations */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.upload-zone {
+  border: 2px dashed var(--border-edge); border-radius: 12px; background: var(--bg-surface);
+  padding: 40px; text-align: center; cursor: pointer; transition: 0.25s; display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.upload-zone:hover { border-color: var(--cyan-glow); background: rgba(0, 212, 255, 0.02); }
+.upload-zone p { font-size: 13px; color: var(--ink-secondary); }
+.upload-zone input { display: none; }
+.file-preview-name { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--cyan-glow); font-weight: bold; margin-top: 5px; }
+
+/* Grid Tables Systems */
+.table-container { overflow-x: auto; width: 100%; border: 1px solid var(--border-edge); border-radius: 8px; background: var(--bg-panel); }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 16px; border-bottom: 1px solid var(--border-edge); font-size: 13.5px; }
+th { background: var(--bg-surface); color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; font-size: 11px; }
+tr:last-child td { border-bottom: none; }
+
+/* Matching Lab Split Structure */
+.lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.preview-box {
+  width: 100%; max-width: 240px; aspect-ratio: 1; border: 1px solid var(--border-edge);
+  border-radius: 12px; background: var(--bg-surface); margin: 15px 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
+}
+.preview-box img { width: 100%; height: 100%; object-fit: cover; }
+.preview-box span { font-size: 12px; color: var(--ink-dark); font-family: 'IBM Plex Mono', monospace; }
+
+.match-output-pane { display: none; flex-direction: column; gap: 15px; }
+.match-output-pane.active { display: flex; }
+.meta-field { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-edge); padding-bottom: 10px; font-size: 14px; }
+.meta-field span.v { font-family: 'IBM Plex Mono', monospace; color: var(--cyan-glow); font-weight: 600; }
+
+.confidence-meter {
+  height: 8px; width: 100%; background: var(--bg-surface); border-radius: 4px; overflow: hidden; margin-top: 8px;
+}
+.confidence-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan-glow), var(--alert-green)); transition: width 0.5s ease; }
+
+/* Global Async Processing Animations */
+.global-loading-barrier {
+  display: none; align-items: center; gap: 12px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--cyan-glow); background: rgba(0, 212, 255, 0.05); padding: 14px 20px; border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.1); margin-top: 15px;
+}
+.global-loading-barrier.show { display: flex; }
+.spinner {
+  width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(0, 212, 255, 0.1); border-top-color: var(--cyan-glow);
+  animation: loopSpin 0.75s linear infinite;
+}
+@keyframes loopSpin { 100% { transform: rotate(360deg); } }
+
+</style>
+    </head>
+    <body>
+
+        <div id="loginScreen">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1>ASTRONIC FORENSIC HUB</h1>
+                    <p>SECURE LOGON SYSTEM CORE</p>
+                </div>
+                <div class="form-group">
+                    <label>Workspace Username</label>
+                    <input type="text" id="authUsername" value="admin">
+                </div>
+                <div class="form-group">
+                    <label>System Authorization Key</label>
+                    <input type="password" id="authPassword" value="admin123">
+                </div>
+                <div class="auth-btn-container">
+                    <button class="btn-primary" id="loginBtn">Logon</button>
+                    <button class="btn-secondary"
+                        id="registerBtn">Register</button>
+                </div>
+                <div class="error-message" id="authErrorMsg"></div>
+            </div>
+        </div>
+
+        <div id="appWrapper">
+            <sidebar>
+                <div class="top-group">
+                    <div class="sys-brand">
+                        <div class="sys-logo">A</div>
+                        <div class="sys-title">
+                            <h2>Astronic Forensics</h2>
+                            <span>COMPUTE CORE ENGINE V2</span>
+                        </div>
+                    </div>
+                    <div class="nav-links">
+                        <div class="nav-item active"
+                            data-target="dashboardPage">Dashboard Node</div>
+                        <div class="nav-item" data-target="registryPage">Add
+                            Entry Document</div>
+                        <div class="nav-item" data-target="directoryPage">System
+                            Records Grid</div>
+                        <div class="nav-item"
+                            data-target="matchLabPage">Minutiae Match Lab</div>
+                    </div>
+                </div>
+                <div class="sys-logout-container">
+                    <button class="btn-secondary" id="logoutBtn"
+                        style="width: 100%;">Terminate Context</button>
+                </div>
+            </sidebar>
+
+            <main>
+                <div id="dashboardPage" class="page-container active">
+                    <div class="header-panel">
+                        <h2>Forensics Matrix Dashboard</h2>
+                    </div>
+                    <div class="metrics-row">
+                        <div class="metric-card">
+                            <div class="label">Total System Cache Prints</div>
+                            <div class="value" id="countRecords">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">Authorized Security Keys</div>
+                            <div class="value" id="countUsers">1</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="label">Compute Cluster Status</div>
+                            <div class="value"
+                                style="color: var(--alert-green);">ONLINE</div>
+                        </div>
+                    </div>
+                    <div class="panel-row">
+                        <div class="content-card">
+                            <span class="card-label">Biometric Clearance
+                                Analytics Matrix</span>
+                            <div class="chart-box">
+                                <canvas id="analyticsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="content-card">
+                            <span class="card-label">System Structural
+                                Framework</span>
+                            <p
+                                style="font-size: 13.5px; line-height: 1.6; color: var(--ink-secondary);">
+                                Decoupled forensic computation infrastructure
+                                utilizing headless Open Source Computer Vision
+                                processing clusters. Execution parameters deploy
+                                ORB feature algorithms mapping matching
+                                constraints via Cross-Origin dynamic pipelines.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="registryPage" class="page-container">
+                    <div class="header-panel">
+                        <h2>Register New Data Record</h2>
+                    </div>
+                    <div class="content-card">
+                        <span class="card-label">Identity Metadata
+                            Parameters</span>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Scientist/Employee Name</label>
+                                <input type="text" id="regName"
+                                    placeholder="e.g. Dr. Akhilesh Pant">
+                            </div>
+                            <div class="form-group">
+                                <label>Operational Age</label>
+                                <input type="number" id="regAge"
+                                    placeholder="e.g. 21">
+                            </div>
+                            <div class="form-group">
+                                <label>Clearance Classification Layer</label>
+                                <input type="text" id="regCrimeType"
+                                    placeholder="e.g. Top Secret">
+                            </div>
+                            <div class="form-group">
+                                <label>Secure Identification Badge ID</label>
+                                <input type="text" id="regCaseId"
+                                    placeholder="e.g. SEC-2026-X">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 24px;">
+                            <label>Biometric Image Attachment</label>
+                            <div class="upload-zone" id="regUploadZone">
+                                <p>Drag & Drop Biometric Minutiae Print File
+                                    Here or click to select storage link</p>
+                                <div class="file-preview-name"
+                                    id="regFileName"></div>
+                                <input type="file" id="regFileInput"
+                                    accept="image/*">
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="saveRecordBtn"
+                            style="padding: 0 30px;">Commit Entry Logs</button>
+                        <div class="global-loading-barrier" id="regLoading">
+                            <div class="spinner"></div>
+                            <span>Writing record to SQLite cluster
+                                mapping...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="directoryPage" class="page-container">
+                    <div class="header-panel">
+                        <h2>Operational Identity Directory</h2>
+                        <button class="btn-secondary" id="refreshDirBtn"
+                            style="height: 38px; font-size: 12px;">Refresh
+                            Records Map</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Identified Identity</th>
+                                    <th>Age Status</th>
+                                    <th>Clearance Classification</th>
+                                    <th>Secure Identity Badge ID</th>
+                                    <th>Registry Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="directoryTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="matchLabPage" class="page-container">
+                    <div class="header-panel">
+                        <h2>Biometric Minutiae Analysis Lab</h2>
+                    </div>
+                    <div class="lab-grid">
+                        <div class="content-card">
+                            <span class="card-label">Target Biometric Sample
+                                Stream</span>
+                            <div class="upload-zone" id="labUploadZone">
+                                <p>Upload/Drop Unknown Fingerprint verification
+                                    file context</p>
+                                <div class="file-preview-name"
+                                    id="labFileName"></div>
+                                <input type="file" id="labFileInput"
+                                    accept="image/*">
+                            </div>
+                            <div class="preview-box">
+                                <img id="labImagePreview"
+                                    style="display: none;">
+                                <span id="labPreviewPlaceholder">Sample Stream
+                                    Empty</span>
+                            </div>
+                            <button class="btn-primary" id="executeMatchBtn"
+                                style="width: 100%;">Execute Cross-Matching
+                                Sequence</button>
+                            <div class="global-loading-barrier" id="labLoading">
+                                <div class="spinner"></div>
+                                <span>Analyzing Minutiae Arrays & Running ORB
+                                    Feature Extraction...</span>
+                            </div>
+                        </div>
+
+                        <div class="content-card">
+                            <span class="card-label">Computational Pipeline
+                                Outputs</span>
+                            <div id="matchOutputPane" class="match-output-pane">
+                                <div class="meta-field"><span>Identity Resolved
+                                        State:</span><span class="v"
+                                        id="outName">—</span></div>
+                                <div class="meta-field"><span>Clearance Context
+                                        Level:</span><span class="v"
+                                        id="outLevel">—</span></div>
+                                <div class="meta-field"><span>Identity
+                                        Verification Badge ID:</span><span
+                                        class="v" id="outBadge">—</span></div>
+                                <div class="meta-field">
+                                    <div style="width: 100%;">
+                                        <span>Matching Engine Confidence: <span
+                                                id="outConfidenceText">0%</span></span>
+                                        <div class="confidence-meter">
+                                            <div class="confidence-fill"
+                                                id="outConfidenceBar"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn-primary"
+                                    id="downloadReportBtn"
+                                    style="margin-top: 20px; background: linear-gradient(135deg, var(--cyan-glow), var(--alert-green));">📄
+                                    Download Forensic Audit Report</button>
+                            </div>
+                            <div id="matchPanelFallback"
+                                style="text-align: center; padding: 40px 0; color: var(--ink-dark); font-family: 'IBM Plex Mono', monospace; font-size: 13px;">
+                                Awaiting feature tracking integration sequence
+                                execution.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <script>
+const BACKEND_URL = "https://astronicdefense-astronic-forensic-lab.hf.space";
+
+// System Nav Transitions Routing Controller hooks
+document.querySelectorAll(".nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+        document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"));
+        document.querySelectorAll(".page-container").forEach(p => p.classList.remove("active"));
+        item.classList.add("active");
+        const target = item.getAttribute("data-target");
+        document.getElementById(target).classList.add("active");
+        if (target === "directoryPage") loadSystemDatabaseGrid();
+        if (target === "dashboardPage") refreshDashboardMetrics();
+    });
+});
+
+// --- CORE INPUT MANAGEMENT CONTROLLER SUBROUTINES ---
+function wireUploadZone(zoneId, fileInputId, textDisplayId, previewImgId, placeholderId) {
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(fileInputId);
+    zone.addEventListener("click", () => input.click());
+    zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.style.borderColor = "var(--cyan-glow)"; });
+    zone.addEventListener("dragleave", () => zone.style.borderColor = "var(--border-edge)");
+    zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        zone.style.borderColor = "var(--border-edge)";
+        if (e.dataTransfer.files.length) {
+            input.files = e.dataTransfer.files;
+            handleFileSelection(input.files[0], textDisplayId, previewImgId, placeholderId);
+        }
+    });
+    input.addEventListener("change", () => {
+        if (input.files.length) handleFileSelection(input.files[0], textDisplayId, previewImgId, placeholderId);
+    });
+}
+
+function handleFileSelection(file, textId, previewId, placeholderId) {
+    document.getElementById(textId).innerText = `ATTACHED: ${file.name.toUpperCase()}`;
+    if (previewId) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById(previewId);
+            img.src = e.target.result;
+            img.style.display = "block";
+            if (placeholderId) document.getElementById(placeholderId).style.display = "none";
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+wireUploadZone("regUploadZone", "regFileInput", "regFileName", null, null);
+wireUploadZone("labUploadZone", "labFileInput", "labFileName", "labImagePreview", "labPreviewPlaceholder");
+
+// --- API ORCHESTRATION PIPELINES ---
+
+// Authentication Router Logic
+async function handleAuthentication(endpoint) {
+    const user = document.getElementById("authUsername").value;
+    const pass = document.getElementById("authPassword").value;
+    const errorBox = document.getElementById("authErrorMsg");
+    errorBox.style.display = "none";
+
+    if (!user || !pass) {
+        errorBox.innerText = "SECURITY ALERT: PARAMETERS MISSING";
+        errorBox.style.display = "block";
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        
+        if (res.ok && (data.success || endpoint === "register")) {
+            if (endpoint === "login") {
+                document.getElementById("loginScreen").style.display = "none";
+                document.getElementById("appWrapper").classList.add("authenticated");
+                refreshDashboardMetrics();
+            } else {
+                errorBox.style.color = "var(--alert-green)";
+                errorBox.innerText = "REGISTRY COMPILED: AUTH ACCOUNT CREATED";
+                errorBox.style.display = "block";
+            }
+        } else {
+            errorBox.innerText = `DENIED: ${data.message.toUpperCase()}`;
+            errorBox.style.display = "block";
+        }
+    } catch (err) {
+        errorBox.innerText = "BACKEND DISRUPTION: PIPELINE TIMEOUT";
+        errorBox.style.display = "block";
+    }
+}
+
+document.getElementById("loginBtn").addEventListener("click", () => handleAuthentication("login"));
+document.getElementById("registerBtn").addEventListener("click", () => handleAuthentication("register"));
+document.getElementById("logoutBtn").addEventListener("click", () => location.reload());
+
+// Add Entry Identity Logging Lifecycle
+document.getElementById("saveRecordBtn").addEventListener("click", async () => {
+    const name = document.getElementById("regName").value;
+    const age = document.getElementById("regAge").value;
+    const type = document.getElementById("regCrimeType").value;
+    const cid = document.getElementById("regCaseId").value;
+    const fileInput = document.getElementById("regFileInput");
+    const loader = document.getElementById("regLoading");
+
+    if (!name || !age || !type || !cid || !fileInput.files.length) {
+        alert("CRITICAL ERROR: All data entry fields and structural primitives required.");
+        return;
+    }
+
+    loader.classList.add("show");
+    const formData = new FormData();
+    formData.append("criminal_name", name);
+    formData.append("age", age);
+    formData.append("crime_type", type);
+    formData.append("case_id", cid);
+    formData.append("image", fileInput.files[0]);
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/add-record`, { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok) {
+            alert("SUCCESS: Biometric data log successfully committed.");
+            document.getElementById("regName").value = "";
+            document.getElementById("regAge").value = "";
+            document.getElementById("regCrimeType").value = "";
+            document.getElementById("regCaseId").value = "";
+            fileInput.value = "";
+            document.getElementById("regFileName").innerText = "";
+        } else {
+            alert(`REJECTED: ${data.message}`);
+        }
+    } catch (err) {
+        alert("CRITICAL ARCHITECTURE COLLAPSE: Target network node down.");
+    } finally {
+        loader.classList.remove("show");
+    }
+});
+
+// Records Directory Table Dynamic Compiler mapping
+async function loadSystemDatabaseGrid() {
+    const tbody = document.getElementById("directoryTableBody");
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; font-family: 'IBM Plex Mono'; color: var(--cyan-glow);">Synchronizing clusters database array...</td></tr>`;
+    
+    try {
+        const res = await fetch(`${BACKEND_URL}/records`);
+        if (!res.ok) throw new Error();
+        const records = await res.json();
+        tbody.innerHTML = "";
+        
+        if(records.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--ink-dark);">System records matrix empty.</td></tr>`;
+            return;
+        }
+
+        records.forEach(r => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td style="font-weight: 600; color: white;">${r.criminal_name}</td>
+                <td class="mono">${r.age}</td>
+                <td><span style="background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2); padding: 4px 8px; border-radius: 4px; color: var(--cyan-glow); font-size: 11px;">${r.crime_type}</span></td>
+                <td class="mono" style="color: var(--ink-secondary); font-weight: bold;">${r.case_id}</td>
+                <td class="mono" style="font-size: 12px; color: var(--ink-dark);">${r.created_at}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--alert-red);">FAILED: Error reading database sequence array.</td></tr>`;
+    }
+}
+document.getElementById("refreshDirBtn").addEventListener("click", loadSystemDatabaseGrid);
+
+// Biometric Feature Verification Pipeline Execution Engine
+document.getElementById("executeMatchBtn").addEventListener("click", async () => {
+    const fileInput = document.getElementById("labFileInput");
+    const loader = document.getElementById("labLoading");
+    const outputPane = document.getElementById("matchOutputPane");
+    const fallbackPane = document.getElementById("matchPanelFallback");
+
+    if (!fileInput.files.length) {
+        alert("INPUT DISRUPTION: Please supply target image file block first.");
+        return;
+    }
+
+    loader.classList.add("show");
+    outputPane.classList.remove("active");
+    fallbackPane.style.display = "none";
+
+    const formData = new FormData();
+    formData.append("image", fileInput.files[0]);
+
+    try {
+        const res = await fetch(`${BACKEND_URL}/match`, { method: "POST", body: formData });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        if (data.match_found) {
+            document.getElementById("outName").innerText = data.name;
+            document.getElementById("outLevel").innerText = data.clearance_level;
+            document.getElementById("outBadge").innerText = data.badge_id;
+            document.getElementById("outConfidenceText").innerText = `${data.confidence}%`;
+            document.getElementById("outConfidenceBar").style.width = `${data.confidence}%`;
+            outputPane.classList.add("active");
+        } else {
+            fallbackPane.innerText = `VERIFICATION NEGATIVE: ${data.message.toUpperCase()}`;
+            fallbackPane.style.display = "block";
+        }
+    } catch (err) {
+        fallbackPane.innerText = "ERROR: Failed tracking feature metrics.";
+        fallbackPane.style.display = "block";
+    } finally {
+        loader.classList.remove("show");
+    }
+});
+
+// Binary Audit Logs Download System Trigger
+document.getElementById("downloadReportBtn").addEventListener("click", () => {
+    window.open(`${BACKEND_URL}/download-report`, "_blank");
+});
+
+// Global Metrics Dashboard System Initialization
+let metricsChartInstance = null;
+async function refreshDashboardMetrics() {
+    try {
+        const resRecords = await fetch(`${BACKEND_URL}/records`);
+        if (!resRecords.ok) return;
+        const records = await resRecords.json();
+        
+        document.getElementById("countRecords").innerText = records.length;
+        
+        // Dynamically reduce analytics groupings metrics frequencies arrays data
+        const clustersData = {};
+        records.forEach(r => {
+            clustersData[r.crime_type] = (clustersData[r.crime_type] || 0) + 1;
+        });
+
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+        if (metricsChartInstance) metricsChartInstance.destroy();
+
+        metricsChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(clustersData),
+                datasets: [{
+                    label: 'Entries Tracking Index',
+                    data: Object.values(clustersData),
+                    backgroundColor: 'rgba(0, 212, 255, 0.15)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: '#2a3447' }, ticks: { color: '#8fa3bc' } },
+                    y: { grid: { color: '#2a3447' }, ticks: { color: '#8fa3bc', stepSize: 1 } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    } catch (err) {
+        console.error("Dashboard metric synch fail.");
+    }
+}
+</script>
+    </body>
+</html>
