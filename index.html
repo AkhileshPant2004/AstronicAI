@@ -80,7 +80,7 @@ sidebar {
   display: flex; align-items: center; justify-content: center; font-weight: 900; color: black;
 }
 .sys-title h2 { font-size: 15px; color: white; }
-.sys-title span { font-size: 10px; color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; }
+.sys-title span { font-size: 10px; color: var(--ink-secondary); font-family: 'IBM Plex Mono', monospace; margin-top: 5px; }
 
 .nav-links { display: flex; flex-direction: column; gap: 8px; }
 .nav-item {
@@ -391,7 +391,7 @@ tr:last-child td { border-bottom: none; }
                                 </div>
                                 <button class="btn-primary"
                                     id="downloadReportBtn"
-                                    style="margin-top: 20px; background: linear-gradient(135deg, var(--cyan-glow), var(--alert-green));">📄
+                                    style="margin-top: 20px; background: linear-gradient(135deg, var(--cyan-glow), var(--alert-green)); display: none;">📄
                                     Download Forensic Audit Report</button>
                             </div>
                             <div id="matchPanelFallback"
@@ -406,7 +406,7 @@ tr:last-child td { border-bottom: none; }
         </div>
 
         <script>
-const BACKEND_URL = "https://astronicdefense-astronic-forensic-lab.hf.space";
+const BACKEND_URL = "https://astronicdefense-astronic-ai-fingerprint.hf.space";
 
 // System Nav Transitions Routing Controller hooks
 document.querySelectorAll(".nav-item").forEach(item => {
@@ -474,14 +474,14 @@ async function handleAuthentication(endpoint) {
     }
 
     try {
-        const res = await fetch(`${BACKEND_URL}/${endpoint}`, {
+        const res = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username: user, password: pass })
         });
         const data = await res.json();
         
-        if (res.ok && (data.success || endpoint === "register")) {
+        if (res.ok && data.status === "success") {
             if (endpoint === "login") {
                 document.getElementById("loginScreen").style.display = "none";
                 document.getElementById("appWrapper").classList.add("authenticated");
@@ -492,7 +492,7 @@ async function handleAuthentication(endpoint) {
                 errorBox.style.display = "block";
             }
         } else {
-            errorBox.innerText = `DENIED: ${data.message.toUpperCase()}`;
+            errorBox.innerText = `DENIED: ${(data.detail || "Authentication Failed").toUpperCase()}`;
             errorBox.style.display = "block";
         }
     } catch (err) {
@@ -528,7 +528,7 @@ document.getElementById("saveRecordBtn").addEventListener("click", async () => {
     formData.append("image", fileInput.files[0]);
 
     try {
-        const res = await fetch(`${BACKEND_URL}/add-record`, { method: "POST", body: formData });
+        const res = await fetch(`${BACKEND_URL}/api/add-criminal`, { method: "POST", body: formData });
         const data = await res.json();
         if (res.ok) {
             alert("SUCCESS: Biometric data log successfully committed.");
@@ -539,7 +539,7 @@ document.getElementById("saveRecordBtn").addEventListener("click", async () => {
             fileInput.value = "";
             document.getElementById("regFileName").innerText = "";
         } else {
-            alert(`REJECTED: ${data.message}`);
+            alert(`REJECTED: ${data.detail || "Upload error occurred"}`);
         }
     } catch (err) {
         alert("CRITICAL ARCHITECTURE COLLAPSE: Target network node down.");
@@ -554,7 +554,7 @@ async function loadSystemDatabaseGrid() {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; font-family: 'IBM Plex Mono'; color: var(--cyan-glow);">Synchronizing clusters database array...</td></tr>`;
     
     try {
-        const res = await fetch(`${BACKEND_URL}/records`);
+        const res = await fetch(`${BACKEND_URL}/api/records`);
         if (!res.ok) throw new Error();
         const records = await res.json();
         tbody.innerHTML = "";
@@ -601,19 +601,19 @@ document.getElementById("executeMatchBtn").addEventListener("click", async () =>
     formData.append("image", fileInput.files[0]);
 
     try {
-        const res = await fetch(`${BACKEND_URL}/match`, { method: "POST", body: formData });
+        const res = await fetch(`${BACKEND_URL}/api/match`, { method: "POST", body: formData });
         if (!res.ok) throw new Error();
         const data = await res.json();
 
         if (data.match_found) {
-            document.getElementById("outName").innerText = data.name;
-            document.getElementById("outLevel").innerText = data.clearance_level;
-            document.getElementById("outBadge").innerText = data.badge_id;
+            document.getElementById("outName").innerText = data.data.criminal_name;
+            document.getElementById("outLevel").innerText = data.data.crime_type;
+            document.getElementById("outBadge").innerText = data.data.case_id;
             document.getElementById("outConfidenceText").innerText = `${data.confidence}%`;
             document.getElementById("outConfidenceBar").style.width = `${data.confidence}%`;
             outputPane.classList.add("active");
         } else {
-            fallbackPane.innerText = `VERIFICATION NEGATIVE: ${data.message.toUpperCase()}`;
+            fallbackPane.innerText = `VERIFICATION NEGATIVE: ${data.detail ? data.detail.toUpperCase() : "NO MATCH DETECTED"}`;
             fallbackPane.style.display = "block";
         }
     } catch (err) {
@@ -624,37 +624,27 @@ document.getElementById("executeMatchBtn").addEventListener("click", async () =>
     }
 });
 
-// Binary Audit Logs Download System Trigger
-document.getElementById("downloadReportBtn").addEventListener("click", () => {
-    window.open(`${BACKEND_URL}/download-report`, "_blank");
-});
-
 // Global Metrics Dashboard System Initialization
 let metricsChartInstance = null;
 async function refreshDashboardMetrics() {
     try {
-        const resRecords = await fetch(`${BACKEND_URL}/records`);
-        if (!resRecords.ok) return;
-        const records = await resRecords.json();
+        const res = await fetch(`${BACKEND_URL}/api/dashboard`);
+        if (!res.ok) return;
+        const metrics = await res.json();
         
-        document.getElementById("countRecords").innerText = records.length;
+        document.getElementById("countRecords").innerText = metrics.total_records;
+        document.getElementById("countUsers").innerText = metrics.total_users;
         
-        // Dynamically reduce analytics groupings metrics frequencies arrays data
-        const clustersData = {};
-        records.forEach(r => {
-            clustersData[r.crime_type] = (clustersData[r.crime_type] || 0) + 1;
-        });
-
         const ctx = document.getElementById('analyticsChart').getContext('2d');
         if (metricsChartInstance) metricsChartInstance.destroy();
 
         metricsChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: Object.keys(clustersData),
+                labels: Object.keys(metrics.analytics),
                 datasets: [{
                     label: 'Entries Tracking Index',
-                    data: Object.values(clustersData),
+                    data: Object.values(metrics.analytics),
                     backgroundColor: 'rgba(0, 212, 255, 0.15)',
                     borderColor: '#00d4ff',
                     borderWidth: 1,
